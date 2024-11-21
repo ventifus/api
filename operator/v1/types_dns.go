@@ -528,3 +528,170 @@ type DNSList struct {
 
 	Items []DNS `json:"items"`
 }
+
+// +kubebuilder:validation:Enum=SystemHostsFilek;""
+type HostsFileType string
+
+const SystemHostsFileType HostsFileType = "SystemHostsFile"
+const NoHostsFileType = ""
+
+// DNSHost allows configuring DNS names that CoreDNS will serve internally to
+// the cluster. Only pods and services in the cluster will have access to these
+// names, no external resolution is provided. Only A and AAAA, and their
+// corresponding PTR records are supported.
+//
+// More details: https://coredns.io/plugins/hosts/
+
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
+type DNSHost struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// spec is the specification of the desired DNS records.
+	Spec DNSHostSpec `json:"spec,omitempty"`
+}
+
+type DNSHostSpec struct {
+	// recordTTL defines the DNS TTL of the records generated (forward and
+	// reverse). If not specified, the CoreDNS default will be used, which
+	// is 3600 seconds (1 hour).
+
+	// +kubebuilder:validation:Pattern=^(0|([0-9]+(\.[0-9]+)?(ns|us|µs|μs|ms|s|m|h))+)$
+	// +kubebuilder:validation:Type:=string
+	// +optional
+	RecordTTL metav1.Duration `json:"recordTTL,omitempty"`
+
+	// hostsFile optionally generates DNS records for every entry in the
+	// /etc/hosts file.
+
+	// +optional
+	// +kubebuilder:default=""
+	HostsFile HostsFileType `json:"hostsFile,omitempty"`
+
+	// hosts is a list of name to IP mappings that CoreDNS will answer queries with.
+
+	// +optional
+	// +kubebuilder:validation:Optional
+	Hosts []DNSHostRecord `json:"hosts"`
+}
+
+type DNSHostRecord struct {
+	// names is a list of one or more fully-qualified hostnames.
+
+	// +kubebuilder:validation:Required
+	// +required
+	Names []string `json:"names"`
+
+	// target is the IPv4 or IPv6 address for this record.
+
+	// +kubebuilder:validation:Required
+	// +required
+	Target string `json:"target"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// DNSHostList contains a list of DNSHosts
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
+type DNSHostList struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []DNSHost `json:"items"`
+}
+
+// DNSTemplate allows DNS responses to be constructed based on Go templates
+//
+// More details: https://coredns.io/plugins/template/
+
+type DNSTemplate struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// spec is the specification of the desired DNS template.
+	Spec DNSTemplateSpec `json:"spec,omitempty"`
+}
+
+type DNSTemplateSpec struct {
+	// dnsClass is the DNS query class, usually IN or ANY.
+
+	// +kubebuilder:default="IN"
+	// +required
+	DNSClass string `json:"dnsClass"`
+
+	// dnsType is the query type (A, PTR, ... can be ANY to match all types).
+
+	// +kubebuilder:default="ANY"
+	// +required
+	DNSType string `json:"dnsType"`
+
+	// dnsZones is an optional list of DNS zone scopes for this template.
+
+	// +kubebuilder:default=[]
+	DNSZones []string `json:"dnsZones"`
+
+	// match is an optional Go regular expression that are matched against the
+	// incoming question name. Specifying no regex matches everything (equivalent of `.*`).
+	Match string `json:"match,omitempty"`
+
+	// answer is a Go template to generate a DNS record fragment as specified in
+	// RFC 1035. This will be the reply. Specifying no answer will result in a
+	// response with an empty answer section.
+	Answer string `json:"answer,omitempty"`
+
+	// additional is a Go template to generate a DNS record fragment as specified
+	// in RFC 1035. If provided, this will be the additional section of the reply.
+	Additional string `json:"additional,omitempty"`
+
+	// authority is a Go template to generate a DNS record fragment as specified in
+	// RFC 1035. If provided, this will be the authority section of the reply.
+	Authority string `json:"authority,omitempty"`
+
+	// rcode is the response code (NXDOMAIN, SERVFAIL, ...) for the DNS reply. The
+	// default is NOERROR.
+	RCode string `json:"rcode,omitempty"`
+
+	// extendedError is an extended DNS error
+	EdError DNSTemplateExtendedError `json:"extendedError,omitempty"`
+}
+
+type DNSTemplateExtendedError struct {
+	// rcode is an extended DNS error code as defined in RFC 8914
+
+	// +kubebuilder:validation:Required
+	// +required
+	RCode string `json:"rcode"`
+	// reason is an optional string explaining the reason for the error
+
+	// +kubebuilder:validation:Required
+	// +required
+	Reason string `json:"reason,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// DNSTemplateList contains a list of DNSHosts
+//
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
+type DNSTemplateList struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	metav1.ListMeta `json:"metadata,omitempty"`
+
+	Items []DNSTemplate `json:"items"`
+}
